@@ -1,0 +1,42 @@
+/* NearbyNow – custom styles that Tailwind utilities do not cover */
+
+html, body { margin: 0; }
+
+.leaflet-container { font-family: 'Public Sans', sans-serif; background: #e9eef0; }
+.leaflet-control-layers { border-radius: 10px; }
+.leaflet-popup-content { margin: 10px 14px; line-height: 1.4; }
+
+/* Map pins drawn with CSS so no image files are needed */
+.pin {
+  width: 22px; height: 22px;
+  background: #0d6f67;
+  border: 3px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .35);
+}
+.pin.active { background: #d1402b; }
+.pin.origin { background: #0a2f2d; }
+
+/* Loading skeleton */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #f1ebe0 25%, #faf7f2 37%, #f1ebe0 63%);
+  background-size: 800px 100%;
+  animation: shimmer 1.2s infinite linear;
+}
+
+/* Result cards */
+.result-card { transition: background-color .15s, border-color .15s; }
+
+/* Thin scrollbar in the results list */
+#listArea::-webkit-scrollbar { width: 8px; }
+#listArea::-webkit-scrollbar-thumb { background: #d8cdb8; border-radius: 8px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+  .result-card { transition: none; }
+}
