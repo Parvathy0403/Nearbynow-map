@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NearbyNow – Find essentials near any place in Kerala</title>
+  <meta name="description" content="Pick a place, choose what you need and see pharmacies, hospitals, ATMs, fuel and more within your radius, nearest first. Built on OpenStreetMap data." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <link rel="stylesheet" href="style.css" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { display: ['"Bricolage Grotesque"', 'sans-serif'], body: ['"Public Sans"', 'sans-serif'] },
+          colors: {
+            lagoon: { 50: '#ecf8f7', 100: '#cdeeeb', 500: '#12897f', 600: '#0d6f67', 700: '#0b5852', 900: '#0a2f2d' },
+            coir: { 50: '#faf7f2', 100: '#f1ebe0', 300: '#d8cdb8' },
+            chilli: { 500: '#d1402b', 600: '#b43320' },
+            paddy: { 400: '#c9e265' }
+          }
+        }
+      }
+    };
+  </script>
+</head>
+
+<body class="bg-coir-50 font-body text-lagoon-900 antialiased min-h-screen lg:h-screen flex flex-col">
+
+  <!-- Notices -->
+  <div id="fileBanner" class="hidden shrink-0 bg-amber-100 text-amber-900 text-sm px-4 py-2 text-center" role="status">
+    You opened this page as a local file. Run it with Live Server or deploy it so every map service works.
+  </div>
+  <div id="offlineBanner" class="hidden shrink-0 bg-chilli-500 text-white text-sm text-center py-2" role="status">
+    You are offline. Searches will work again when your connection returns.
+  </div>
+
+  <div class="flex-1 min-h-0 flex flex-col lg:flex-row">
+
+    <!-- LEFT PANEL -->
+    <aside class="order-2 lg:order-1 w-full lg:w-[470px] lg:max-w-[44%] flex flex-col bg-white lg:min-h-0 lg:overflow-y-auto border-t lg:border-t-0 lg:border-r border-coir-300 shadow-xl z-10">
+
+      <header class="shrink-0 px-5 pt-5 pb-5 bg-lagoon-900 text-white">
+        <h1 class="font-display text-3xl font-extrabold tracking-tight">NearbyNow</h1>
+        <p class="text-sm text-lagoon-100 mt-1 max-w-sm leading-relaxed">
+          Choose a place, say what you need, and see everything in range, nearest first.
+        </p>
+      </header>
+
+      <!-- SEARCH FORM -->
+      <form id="searchForm" class="shrink-0 px-5 py-4 space-y-4 border-b border-coir-300" novalidate>
+        <div>
+          <label for="location" class="block text-sm font-semibold mb-1">Place to search around</label>
+          <div class="flex gap-2">
+            <input id="location" name="location" type="text" autocomplete="off" placeholder="e.g. Vaikom, Kottayam, Kochi"
+              class="flex-1 min-w-0 rounded-lg border border-coir-300 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-lagoon-500"
+              aria-describedby="locationMsg" />
+            <button type="button" id="geoBtn" title="Use my current location"
+              class="rounded-lg border border-coir-300 px-3 hover:bg-lagoon-50 focus:outline-none focus:ring-2 focus:ring-lagoon-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg>
+              <span class="sr-only">Use my location</span>
+            </button>
+          </div>
+          <p id="locationMsg" class="text-xs mt-1 min-h-[1rem]" aria-live="polite"></p>
+          <div class="flex flex-wrap gap-2 mt-1 text-xs items-center">
+            <span class="text-lagoon-700">Try:</span>
+            <button type="button" data-example="Vaikom" class="example rounded-full bg-coir-100 hover:bg-lagoon-100 px-2.5 py-1">Vaikom</button>
+            <button type="button" data-example="Kottayam" class="example rounded-full bg-coir-100 hover:bg-lagoon-100 px-2.5 py-1">Kottayam</button>
+            <button type="button" data-example="Ernakulam" class="example rounded-full bg-coir-100 hover:bg-lagoon-100 px-2.5 py-1">Ernakulam</button>
+          </div>
+        </div>
+
+        <fieldset>
+          <legend class="block text-sm font-semibold mb-2">What do you need?</legend>
+          <div id="chips" class="flex flex-wrap gap-2" role="radiogroup" aria-describedby="categoryMsg"></div>
+          <p id="categoryMsg" class="text-xs mt-1 min-h-[1rem]" aria-live="polite"></p>
+        </fieldset>
+
+        <div>
+          <label for="radius" class="flex justify-between text-sm font-semibold">
+            <span>Distance from the place</span>
+            <span><span id="radiusLabel" class="text-lagoon-600">2 km</span> <span id="walkHint" class="font-normal text-lagoon-700 text-xs">(about 25 min walk)</span></span>
+          </label>
+          <input id="radius" name="radius" type="range" min="250" max="5000" step="250" value="2000" class="w-full accent-lagoon-600 mt-2" />
+          <div class="flex justify-between text-[11px] text-lagoon-700"><span>250 m</span><span>5 km</span></div>
+        </div>
+
+        <button id="submitBtn" type="submit"
+          class="w-full rounded-lg bg-lagoon-600 hover:bg-lagoon-700 text-white font-semibold py-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lagoon-500 disabled:opacity-60 disabled:cursor-not-allowed">
+          Find places
+        </button>
+      </form>
+
+      <!-- TABS -->
+      <div class="shrink-0 flex border-b border-coir-300 text-sm font-semibold" role="tablist">
+        <button id="tabResults" type="button" role="tab" aria-selected="true" class="flex-1 py-2.5 border-b-2 border-lagoon-600 text-lagoon-700">Results <span id="resultCount" class="ml-1 text-xs bg-lagoon-100 rounded-full px-2 py-0.5">0</span></button>
+        <button id="tabSaved" type="button" role="tab" aria-selected="false" class="flex-1 py-2.5 border-b-2 border-transparent text-lagoon-700/70 hover:text-lagoon-700">Saved <span id="savedCount" class="ml-1 text-xs bg-coir-100 rounded-full px-2 py-0.5">0</span></button>
+      </div>
+
+      <!-- SUMMARY / FILTERS -->
+      <div id="toolbar" class="hidden shrink-0 px-5 py-2 bg-coir-50 border-b border-coir-300 text-sm">
+        <p id="summary" class="mb-2"></p>
+        <div class="flex items-center justify-between gap-3">
+          <label class="flex items-center gap-2"><input id="onlyDetails" type="checkbox" class="accent-lagoon-600" /> Only with phone or hours</label>
+          <select id="sortBy" class="rounded border border-coir-300 bg-white px-2 py-1" aria-label="Sort results">
+            <option value="distance">Nearest first</option>
+            <option value="name">Name A–Z</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- LIST -->
+      <section id="listArea" class="flex-1 px-5 py-4 min-h-[320px]" aria-live="polite"></section>
+    </aside>
+
+    <!-- MAP -->
+    <main class="order-1 lg:order-2 flex-1 relative h-[48vh] lg:h-auto min-h-[300px]">
+      <div id="map" class="absolute inset-0" role="application" aria-label="Map of results"></div>
+    </main>
+  </div>
+
+  <div id="toast" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-[2000] max-w-[90%] rounded-lg bg-lagoon-900 text-white text-sm px-4 py-2 shadow-lg" role="status"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
